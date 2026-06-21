@@ -1,9 +1,110 @@
-import lightning as L
 
+#what should the steps be?
+'''
+from hydra we configure we select the schedule from the diffusion.schedules file. We get alpha and sigma from this.
+We use alpha and sigma to define the scheduler.
+The model is defined from hydra config and loaded
+The schedule gives us the training objective and we at this stage also have the model form hydra so we can train.
+Training params are handled by hydra here
+'''
+from diffusion.diffusionprocess import DiffusionProcess
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import hydra
+from hydra.utils import instantiate, get_method
+from omegaconf import DictConfig, OmegaConf
+from torch.utils.data import DataLoader, random_split
+from hydra.core.hydra_config import HydraConfig
+from diffusion.utils.schedulerwrapper import SchedulerWrapper
+import os
+import hashlib
+from pathlib import Path
 
-def main():
-    pass
+def save_checkpoint(path, epoch, network, optimizer, cfg):
+    torch.save({
+        "epoch": epoch,
+        "model_state_dict": network.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "model_cfg": OmegaConf.to_container(cfg.model, resolve=True),
+    }, path)
 
+@hydra.main(version_base=None, config_path="configs", config_name="base")
+def main(cfg: DictConfig):
+    device = cfg.device
+    dataset = instantiate(cfg.dataset)
+    n_val = int(len(dataset) * (1-cfg.trainer.train_split))
 
-if __name__ == "__main__":
-    main()
+    n_train = len(dataset) - n_val
+    train_set, val_set = random_split(dataset, [n_train, n_val])
+    train_loader = DataLoader(train_set, batch_size=cfg.trainer.batch_size, shuffle=True)
+    val_loader   = DataLoader(val_set,   batch_size=cfg.trainer.batch_size, shuffle=False)
+    #TODO Make this configurable
+    t_distribution = torch.distributions.Uniform(
+        torch.tensor(0.0, device=device),
+        torch.tensor(1.0, device=device),
+    )
+
+    sched = instantiate(cfg.schedule)
+    weight_func = get_method(cfg.weight_func._target_)
+    pmtrz  = hydra.utils.instantiate(
+        cfg.parameterization,
+        schedule = sched,
+        _recursive_ = False
+    )
+    network = instantiate(cfg.model)
+
+    DP = DiffusionProcess(schedule = sched, parameterization=pmtrz, weight_func = weight_func, network=network, 
+                          t_distribution=t_distribution)
+
+    epochs = cfg.trainer.epochs
+    device = cfg.device
+    run_dir = HydraConfig.get().runtime.output_dir
+    ckpt_dir = os.path.join(run_dir, "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
+    optimizer = optim.Adam(network.parameters(), lr=cfg.trainer.lr)
+    lr_scheduler_base = instantiate(cfg.lr_scheduler, optimizer=optimizer)
+    lr_scheduler = SchedulerWrapper(lr_scheduler_base)
+
+    for epoch in range(epochs):
+        network.train()
+        running_loss = 0.0
+        running_clean_loss = 0.0
+        for inputs in train_loader:
+            inputs = inputs.to(device)
+            loss, clean_loss = DP.training_loss(inputs)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+            #running_clean_loss += clean_loss.item()
+        network.eval()
+        val_loss = 0.0
+        val_clean_loss = 0.0
+        with torch.no_grad():
+            for inputs in val_loader:
+                inputs = inputs.to(device)
+                val_loss_tmp, val_clean_loss_tmp = DP.training_loss(inputs)
+                val_loss += val_loss_tmp.item()
+                #val_clean_loss += val_clean_loss_tmp.item()
+        val_loss /= len(val_loader)
+        val_clean_loss /= len(val_loader)
+        lr_scheduler.step(val_loss)
+        current_lr = lr_scheduler.get_last_lr()[0]
+        print(f"Epoch [{epoch+1}/{epochs}], "
+                f"train: {running_loss/len(train_loader):.4f}, "
+                f"clean_train: {running_clean_loss/len(train_loader):.4f} "
+                f"val: {val_loss:.4f}, clean_val: {val_clean_loss:.4f}, lr: {current_lr:.2e}")
+    if cfg.trainer.save_final:
+        hc = HydraConfig.get()
+        cfg_hash = hashlib.sha1(
+            OmegaConf.to_yaml(cfg, resolve=True).encode()
+        ).hexdigest()[:4]
+        #TODO: Dont hardcode the name to the save. Uncomment the lines
+        #name = f"{hc.job.name}_{cfg_hash}"
+        name = "train_best"
+        save_dir = Path.cwd() / "trained_models"
+        os.makedirs(save_dir, exist_ok=True)
+        save_checkpoint(os.path.join(save_dir, f"{name}.pt"), epochs, network, optimizer, cfg)
+main()

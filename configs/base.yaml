@@ -1,3 +1,23 @@
-diffusion:
-  formulation: noise_prediction   # noise_prediction | score_matching | flow_matching
-  timesteps: 1000        # linear | cosine
+defaults:
+  - schedule: linear
+  - solver: euler
+  - generation: default
+  - model: simple
+  - dataset: blob
+  - lr_scheduler: plateau
+  - parameterization: clean_pred
+  - weight_func : linear
+  - trainer: default 
+  - _self_
+
+seed: 0
+device: cpu
+input_dim: 2
+output_dim: 2
+run_name: ${now:%Y-%m-%d_%H-%M-%S}
+hydra:
+  run:
+    dir: outputs/${run_name}
+  sweep:
+    dir: multirun/${run_name}
+    subdir: ${hydra.job.num}

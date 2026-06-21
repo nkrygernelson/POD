@@ -1,0 +1,5 @@
+_target_: data.blob.BlobDataset
+n_samples: 10000
+n_clusters: 4
+cluster_std: 0.3
+random_state: 42

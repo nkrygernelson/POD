@@ -1,0 +1,4 @@
+_target_: diffusion.solvers.euler.EulerSolver
+N: 100
+ti: 1
+tf: 0

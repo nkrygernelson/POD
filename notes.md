@@ -1,6 +1,19 @@
-Configurable solver
-predefined sigma and alpha value, can be converted into any of the formulations
-schedule defined where?. Schedule class, initialized with config hydra alpha and sigma and 
-translates to the differnt formualtions. Make some schedule configutations in hydra.
+manage the config better: live config vs, saved config
+build some tools to visualize the model and its perforamnce.
+Check the final distribution, 
 
-The solver logic will be a class that takes in the config and the schedule. It will have a solve method.The solver logic will be a class that takes in the config and the schedule.
+Plot the transport of points from the initial distribution to the final distribution. Start by assuming that we call this code on 2d, otherwise we will have to do some dimensionality reduction...
+
+Plot the training graphs.
+Save all of these graphs in hydra output folders.
+
+
+
+TODO:
+
+Add differnt solvers, with EM the msot important to do now
+Add some way to select better pairs for v_field training. An important question to answer is if you can do the smart pairing for the V based models if the core network predicts a differnt qunatity.
+
+Distant future: 
+See how perforamnce accross the different parameterizations varies with increasingly complex high dimensional data.
+

@@ -1,0 +1,2 @@
+- trainer.epochs=15
+- trainer.save_final=False
