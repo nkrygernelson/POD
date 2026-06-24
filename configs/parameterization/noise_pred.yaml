@@ -1,1 +1,1 @@
-_target_: diffusion.parameterizations.pred.NoisePred
+_target_: diffusion.parameterizations.paramv2.NoisePred

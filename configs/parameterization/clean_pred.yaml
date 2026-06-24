@@ -1,1 +1,1 @@
-_target_: diffusion.parameterizations.pred.CleanPred
+_target_: diffusion.parameterizations.paramv2.CleanPred

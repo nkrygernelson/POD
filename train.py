@@ -18,6 +18,7 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, random_split
 from hydra.core.hydra_config import HydraConfig
 from diffusion.utils.schedulerwrapper import SchedulerWrapper
+from diffusion.viz.viz_functions import viz_training, plot_prior
 import os
 import hashlib
 from pathlib import Path
@@ -38,15 +39,12 @@ def main(cfg: DictConfig):
 
     n_train = len(dataset) - n_val
     train_set, val_set = random_split(dataset, [n_train, n_val])
-    train_loader = DataLoader(train_set, batch_size=cfg.trainer.batch_size, shuffle=True)
-    val_loader   = DataLoader(val_set,   batch_size=cfg.trainer.batch_size, shuffle=False)
+    train_loader= DataLoader(train_set, batch_size=cfg.trainer.batch_size, shuffle=True)
+    val_loader= DataLoader(val_set, batch_size=cfg.trainer.batch_size, shuffle=False)
     #TODO Make this configurable
-    t_distribution = torch.distributions.Uniform(
-        torch.tensor(0.0, device=device),
-        torch.tensor(1.0, device=device),
-    )
-
     sched = instantiate(cfg.schedule)
+    tp = instantiate(cfg.time_param, schedule=sched)
+    t_distribution = instantiate(cfg.t_distribution, time_param=tp, device=device)
     weight_func = get_method(cfg.weight_func._target_)
     pmtrz  = hydra.utils.instantiate(
         cfg.parameterization,
@@ -55,8 +53,8 @@ def main(cfg: DictConfig):
     )
     network = instantiate(cfg.model)
 
-    DP = DiffusionProcess(schedule = sched, parameterization=pmtrz, weight_func = weight_func, network=network, 
-                          t_distribution=t_distribution)
+    DP = DiffusionProcess(schedule = sched, parameterization=pmtrz, weight_func = weight_func, network=network,
+                          t_distribution=t_distribution, time_param=tp)
 
     epochs = cfg.trainer.epochs
     device = cfg.device
@@ -66,7 +64,8 @@ def main(cfg: DictConfig):
     optimizer = optim.Adam(network.parameters(), lr=cfg.trainer.lr)
     lr_scheduler_base = instantiate(cfg.lr_scheduler, optimizer=optimizer)
     lr_scheduler = SchedulerWrapper(lr_scheduler_base)
-
+    losses_train = []
+    losses_val = []
     for epoch in range(epochs):
         network.train()
         running_loss = 0.0
@@ -80,6 +79,7 @@ def main(cfg: DictConfig):
             running_loss += loss.item()
             #running_clean_loss += clean_loss.item()
         network.eval()
+        
         val_loss = 0.0
         val_clean_loss = 0.0
         with torch.no_grad():
@@ -96,6 +96,8 @@ def main(cfg: DictConfig):
                 f"train: {running_loss/len(train_loader):.4f}, "
                 f"clean_train: {running_clean_loss/len(train_loader):.4f} "
                 f"val: {val_loss:.4f}, clean_val: {val_clean_loss:.4f}, lr: {current_lr:.2e}")
+        losses_train.append(running_loss/len(train_loader))
+        losses_val.append(val_loss)
     if cfg.trainer.save_final:
         hc = HydraConfig.get()
         cfg_hash = hashlib.sha1(
@@ -107,4 +109,32 @@ def main(cfg: DictConfig):
         save_dir = Path.cwd() / "trained_models"
         os.makedirs(save_dir, exist_ok=True)
         save_checkpoint(os.path.join(save_dir, f"{name}.pt"), epochs, network, optimizer, cfg)
-main()
+    if cfg.viz:
+        out_dir = os.path.join(run_dir, "figures")
+        os.makedirs(out_dir, exist_ok=True)
+
+        epoch_axis = list(range(epochs))
+        viz_training(
+            epochs=epoch_axis,
+            train_loss=losses_train,
+            val_loss=losses_val,
+            out_path=os.path.join(out_dir, "loss.png"),
+        )
+        num_samples = min(1000, len(val_set))
+        X = torch.stack([val_set[i] for i in range(num_samples)]).to(device)
+
+        noise = torch.randn_like(X)
+        t1 = torch.ones(X.shape[0], 1, device=device)
+        mapped = DP.forward_sample(X, t1, noise)          # (num_samples, 2)
+
+        prior = instantiate(cfg.prior)
+        assumed = prior.sample(num_samples, device=device)
+
+        plot_prior(
+            assumed_samples=assumed.cpu().numpy(),
+            mapped_samples=mapped.cpu().numpy(),
+            out_path=os.path.join(out_dir, "prior_check.png"),
+        )
+
+if __name__ == "__main__":
+    main()

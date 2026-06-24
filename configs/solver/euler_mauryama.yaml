@@ -1,0 +1,2 @@
+_target_: diffusion.solvers.euler_mauryama.EulerMauryamaSolver
+N: ${solver_steps}

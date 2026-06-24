@@ -6,15 +6,17 @@ class Linear:
     
     @staticmethod
     def alpha(t):
-        tol = 1e-5
-        return 1-t + tol
+        return 1-t +1e-5
     @staticmethod
     def sigma(t):
-        return t + 1e-5
+        return t +1e-5
     @staticmethod
     def alpha_prime(t):
         return -1
     @staticmethod
     def sigma_prime(t):
         return 1
-    
+    @staticmethod
+    def gamma(t):
+        #gamma t controls reverse SDE
+        return 0.1

@@ -1,0 +1,2 @@
+_target_: diffusion.solvers.ddim.DDIMSolver
+N: ${solver_steps}

@@ -1,1 +1,1 @@
-_target_: diffusion.parameterizations.pred.ScorePred
+_target_: diffusion.parameterizations.paramv2.ScorePred

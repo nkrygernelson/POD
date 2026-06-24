@@ -1,19 +1,23 @@
 defaults:
   - schedule: linear
-  - solver: euler
+  - solver: euler_mauryama
   - generation: default
+  - t_distribution: uniform_u
+  - time_param: logsnr
   - model: simple
   - dataset: blob
-  - lr_scheduler: plateau
-  - parameterization: clean_pred
-  - weight_func : linear
+  - lr_scheduler: cosine
+  - parameterization: v_pred
+  - weight_func : ones
+  - prior: standard_normal
   - trainer: default 
   - _self_
-
+solver_steps: 1000
 seed: 0
 device: cpu
 input_dim: 2
 output_dim: 2
+viz: True
 run_name: ${now:%Y-%m-%d_%H-%M-%S}
 hydra:
   run:

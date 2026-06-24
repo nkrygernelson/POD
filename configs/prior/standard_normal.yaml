@@ -1,0 +1,2 @@
+_target_: diffusion.dists_funcs.standard_normal.StandardNormal
+dim: ${input_dim}
