@@ -1,0 +1,9 @@
+_target_: models.beefier.SimpleModel
+input_dim: ${input_dim}
+output_dim: ${output_dim}
+hidden_dim: 256
+n_blocks: 4
+time_emb_dim: 128
+x_fourier_features: 64
+x_fourier_scale: 3.0
+time_fourier_scale: 1.0

@@ -1,18 +1,18 @@
 defaults:
   - schedule: linear
-  - solver: euler_mauryama
+  - solver: ddim
   - generation: default
   - t_distribution: uniform_u
   - time_param: logsnr
   - model: simple
   - dataset: blob
   - lr_scheduler: cosine
-  - parameterization: v_pred
+  - parameterization: noise_pred
   - weight_func : ones
   - prior: standard_normal
   - trainer: default 
   - _self_
-solver_steps: 1000
+solver_steps: 100
 seed: 0
 device: cpu
 input_dim: 2

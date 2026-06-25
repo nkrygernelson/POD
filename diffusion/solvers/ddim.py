@@ -13,7 +13,7 @@ class DDIMSolver:
         with torch.no_grad():
             return self.model(x, t)
 
-    def sample(self, x0, eps = 0, N=None, return_trajectory=False):
+    def sample(self, x0, eps = 0, N=None, return_trajectory=False, time_grid = None):
         '''
         eps: value to give as buffer around the ends of the grid
         '''
@@ -22,6 +22,8 @@ class DDIMSolver:
 
         device=x0.device
         ts = self.time_param.grid(N, device=device, eps=eps)
+        if time_grid:#override time grid 
+            ts = time_grid
         x = x0.clone()
         traj = [x.clone()] if return_trajectory else None
 

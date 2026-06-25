@@ -15,10 +15,12 @@ class EulerMauryamaSolver:
         with torch.no_grad():
             return self.model(x, t)
 
-    def sample(self, x0, return_trajectory=False):
+    def sample(self, x0, return_trajectory=False, time_grid=None):
         gamma_func = self.schedule.gamma
         device =x0.device
         ts=self.time_param.grid(self.steps, device=device)
+        if time_grid:
+            ts = time_grid
         x =x0.clone()
         traj = [x.clone()] if return_trajectory else None
         N = self.steps

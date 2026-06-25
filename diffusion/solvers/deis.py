@@ -8,10 +8,20 @@ class DEISSolver:
         self.ti = ti
         self.tf = tf
         self.parameterziation = parameterization
+    def LP(ys, m, t):
+        l = []
+        t_tens = t*torch.ones(size=(m,1))
+
+
+                
+
     def model_eval(self, x,t):
         self.model.eval()
         with torch.no_grad():
-            return self.model(x,t) 
+            return self.model(x,t)
+
+    
+         
     def sample(self, x0, return_trajectory =False):
         N_steps = self.steps
         step_size = (self.tf-self.ti)/N_steps

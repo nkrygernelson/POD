@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import click
 import tqdm
 import types
+from torch.utils.data import Dataset
 
 
 warnings.filterwarnings('ignore', 'You are using `torch.load` with `weights_only=False`')
@@ -130,4 +131,34 @@ def gt(classes='A', device=torch.device('cpu'), seed=2, origin=np.array([0.0030,
     sel = [c for c in comps if c.cls in classes]
     distrib = GaussianMixture([c.phi for c in sel], [c.mu for c in sel], [c.Sigma for c in sel])
     return distrib.to(device)
+
+
+#----------------------------------------------------------------------------
+# Swappable Dataset wrapper around the ground-truth tree distribution, so it
+# can be selected via Hydra (`dataset=tree`) in place of data.blob.BlobDataset.
+
+class TreeDataset(Dataset):
+    """NVIDIA 2D fractal "tree" mixture, wrapped to match BlobDataset.
+
+    Stores `self.X` as a float32 (N, 2) tensor (per-feature standardized so the
+    scale matches the unit-variance prior), and `__getitem__` returns a single
+    2D point — identical interface to data.blob.BlobDataset.
+    """
+    def __init__(self, n_samples: int, classes: str = "AB",
+                 random_state: int = 42, standardize: bool = True,
+                 device: str = "cpu"):
+        dev = torch.device(device)
+        gen = torch.Generator(device=dev).manual_seed(random_state)
+        dist = gt(classes=classes, device=dev)
+        X = dist.sample((n_samples,), generator=gen)        # (n_samples, 2)
+        if standardize:
+            X = (X - X.mean(0)) / X.std(0)
+        self.X = X.to(dtype=torch.float32, device="cpu")
+        self.classes = classes
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx]
 
