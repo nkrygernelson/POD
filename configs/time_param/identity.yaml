@@ -1,1 +1,2 @@
 _target_: diffusion.time.time.Identity
+eps: 1.0e-4

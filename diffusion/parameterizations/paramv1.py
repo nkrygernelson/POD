@@ -1,4 +1,9 @@
 import torch
+'''
+Original parameterization class: independent classes for every parameterization which allows for specific 
+conversion expressions which include symbolic cancellations. The conversion are more numerically stable than 
+in paramv2 but there are more points where things can break and expanding this code is more complex.
+'''
 
 class ScorePred:
     #check

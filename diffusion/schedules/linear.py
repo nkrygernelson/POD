@@ -6,10 +6,10 @@ class Linear:
     
     @staticmethod
     def alpha(t):
-        return 1-t +1e-5
+        return 1-t 
     @staticmethod
     def sigma(t):
-        return t +1e-5
+        return t 
     @staticmethod
     def alpha_prime(t):
         return -1

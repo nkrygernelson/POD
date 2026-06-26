@@ -23,12 +23,13 @@ def main(cfg: DictConfig):
     device = cfg.device
     run_dir = HydraConfig.get().runtime.output_dir
     schedule = instantiate(cfg.schedule)
-    tp = instantiate(cfg.time_param, schedule=schedule)
+    eps = cfg.time_param.eps # the buffer around the edges of the grid
+    tp = instantiate(cfg.time_param, eps = eps, schedule=schedule)
     model, trained_pmtrz, trained_tp, ckpt = load_model(
         cfg.generation.trained_model_path, schedule, device=device
     )
     #we need the param used to train to be the same as the one we use to generate.
-    #Want to avoid training a v_pred model and using the weights for score_pred.
+    #For example, we want to avoid training a v_pred model and using the weights for score_pred.
     pmtrz = trained_pmtrz
     tp = trained_tp 
     solver = instantiate(

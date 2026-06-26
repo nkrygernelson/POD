@@ -1,3 +1,4 @@
 _target_: diffusion.time.time.LogSNRTime
 u_min: -10.0
 u_max: 10.0
+eps: 1.0e-4

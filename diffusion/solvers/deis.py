@@ -1,12 +1,17 @@
+"""
+DEIS implementation by the book (p 282). The weights C_{i,j} in front of the buffer of previous noise
+predictions are computed numerically with a gauss-legendre method.
+
+For the weights: the integrating factor is simple when working in alpha and sigma.
+Let E be the integrating factor:
+E(s->t) = exp(int_s^t f(u) du) = alpha_t/alpha_s
+g^2 is also easy known in terms of the canonical alpha_t and sigma_t
+g^2 = 2sigma_t*sigma_t_prime - 2*(alpha_t_prime/alpha_t)*sigma_t^2
+"""
+
 import torch
 import torch.nn as nn
 import numpy as np
-
-"""
-integrating factor is simple when working in alpha and sigma. Let E be the integrating factor:
-E(s->t) = exp(int_s^t f(u) du) = alpha_t/alpha_s
-g^2 is also easy known in terms of the canonical alpha_t and sigma_t
-g^2 = 2sigma_t*sigma_t_prime - 2*(alpha_t_prime/alpha_t)*sigma_t^2"""
 
 
 class DEISSolver:
@@ -21,7 +26,8 @@ class DEISSolver:
     def integrand_on_grid(self, tau, ts, i, j, m):
         """
         Vectorized function that accepts a vector integration grid used to compute the integrand for the weights C_{i,j} along the grid
-        tau: (K,)
+        tau: (K,).
+        The code below is very commented because the vectorization can be hard to follow.
         """
         # make this vectorized so tau can be a vector of tau used to approx the integral that defines the weights
         ts = np.asarray(ts, float)
@@ -58,6 +64,7 @@ class DEISSolver:
         return 0.5 * (b - a) * (wq * self.integrand_on_grid(tau, ts, i, j, m)).sum()
 
     def precompute_weights(self, time_grid, n=None, n_quad=64):
+        # hardcoded n_quad because this should always be fine to compute the weights accurately
         if n is None:
             n = self.K
         ts = np.asarray(time_grid, float)
@@ -77,17 +84,19 @@ class DEISSolver:
         with torch.no_grad():
             return self.model(x, t)
 
-    def sample(self, x0, return_trajectory=False, time_grid=None):
+    def sample(self, x0, return_trajectory=False, eps=0, time_grid=None):
         device = x0.device
-        ts = self.time_param.grid(self.steps, device=device)
+        ts = self.time_param.grid(self.steps, eps=eps, device=device)
         if time_grid is not None:
             ts = time_grid
-        ts_np = ts.detach().cpu().numpy().astype(float) #need this to be numpy for the weight computation       
+        ts_np = (
+            ts.detach().cpu().numpy().astype(float)
+        )  # need this to be numpy for the weight computation
         self.precompute_weights(ts_np, n=self.M)
 
         x = x0.clone()
         traj = [x.clone()] if return_trajectory else None
-        eps_buf = []  
+        eps_buf = []
 
         for i in range(self.steps):
             t = ts[i]
@@ -95,15 +104,13 @@ class DEISSolver:
             u_tens = torch.full((x.shape[0], 1), u.item(), device=device, dtype=x.dtype)
 
             model_out = self.model_eval(x, u_tens)
-            eps = self.parameterization.to_noise(
-                model_out, x, t
-            )
+            eps = self.parameterization.to_noise(model_out, x, t)
             eps_buf.insert(0, eps)
-            eps_buf = eps_buf[: self.M + 1] 
+            eps_buf = eps_buf[: self.M + 1]
 
-            Ci = self.C[i] 
-            x = float(self.E[i]) * x  
-            for j in range(len(Ci)): 
+            Ci = self.C[i]
+            x = float(self.E[i]) * x
+            for j in range(len(Ci)):
                 x = x + float(Ci[j]) * eps_buf[j]
 
             if return_trajectory:

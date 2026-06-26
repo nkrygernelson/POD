@@ -1,2 +1,3 @@
 _target_: diffusion.time.uniform.Uniform_u
-eps: 1.0e-3
+# eps is omitted on purpose: the buffer is shared with the solver grid via
+# time_param.eps. Set it here only to deliberately use a different training buffer.

@@ -14,10 +14,10 @@ class EulerSolver:
         with torch.no_grad():
             return self.model(x, t)
 
-    def sample(self, x0, return_trajectory=False, time_grid = None):
+    def sample(self, x0, return_trajectory=False, eps = 0, time_grid = None):
         device =x0.device
 
-        ts=self.time_param.grid(self.steps, device=device)
+        ts=self.time_param.grid(self.steps, eps=eps, device=device)
         if time_grid is not None: #override time grid
             ts = time_grid
         x =x0.clone()

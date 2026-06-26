@@ -1,30 +1,32 @@
+"""
+Parameterization base class, inhertied by specific parameterization subclasses.
+The main idea of this class is the following transformation
+[[xt         ] = [[alpha_t, sigma_t] . [[x_0]
+[[model_out]]]   [[a      ,    b  ]]   [epsilon]]
+
+where the coeffs a and b are determined by the parameterization
+noise: a = 0, b = 1
+x_0:   a = 1, b = 0
+score: a = 0, b = (-1/sigma_t)
+v:     a = alpha_t_', sigma_t'
+
+We can define the inverse transformation by inverting the 2 by 2 matrix.
+
+[[x_0         ] = 1/Det . [[b.     , -sigma_t] . [[x_0]
+[[epsilon]]   ]           [[-a     , alpha_t]]   [epsilon]]
+
+This transformation is only defined when the determinant is non_zero.
+We can monitor the stability of the conversion by the monitoring the magnitude of the determinant
+
+Why I wrote this V2 is because more can go wrong with a bunch of independent classes than
+a single base class. Also, expanding this code is much easier than in v1 because we can add features to the base
+class and don't need to independently update 4 indepepndent classes.
+"""
+
 import torch
 
 
 class Parameterization:
-    """
-    Parameterization base class, inhertied by specific parameterization subclasses.
-    The main idea of this class is the following transformation
-    [[xt         ] = [[alpha_t, sigma_t] . [[x_0]
-    [[model_out]]]   [[a      ,    b  ]]   [epsilon]]
-
-    where the coeffs a and b are determined by the parameterization
-    noise: a = 0, b = 1
-    x_0:   a = 1, b = 0
-    score: a = 0, b = (-1/sigma_t)
-    v:     a = alpha_t_', sigma_t'
-
-    WE can define the inverse transformation by inverting the 2 by 2 matrix.
-
-    [[x_0         ] = 1/Det . [[b.     , -sigma_t] . [[x_0]
-    [[epsilon]]   ]           [[-a     , alpha_t]]   [epsilon]]
-
-    This transformation is only defined when the determinant is non_zero.
-    We can monitor the stability of the conversion by the monitoring the magnitude of the determinant
-
-    Why I wrote this V2 is because more can go wrong with a bunch of independent classes than
-    a single base class. On the other hand the first version involved less conversions
-    """
 
     def __init__(self, schedule):
         self.schedule = schedule
@@ -62,7 +64,7 @@ class Parameterization:
         return self.to_v(m, x, t)
 
     def rev_sde(self, x, t, m, gamma):
-        x0, eps = self.to_x0_eps(m, x, t) 
+        x0, eps = self.to_x0_eps(m, x, t)
         s = self.schedule
         v = s.alpha_prime(t) * x0 + s.sigma_prime(t) * eps
         score = -eps / s.sigma(t)

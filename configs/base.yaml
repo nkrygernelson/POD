@@ -1,11 +1,11 @@
 defaults:
   - schedule: linear
-  - solver: ddim
+  - solver: deis
   - generation: default
   - t_distribution: uniform_u
   - time_param: logsnr
-  - model: beefier  
-  - dataset: blob
+  - model: beefier
+  - dataset: tree
   - lr_scheduler: cosine
   - parameterization: noise_pred
   - weight_func : ones
@@ -13,7 +13,7 @@ defaults:
   - trainer: default
   - train_proc: standard
   - _self_
-solver_steps: 300
+solver_steps: 40
 seed: 0
 device: cpu
 input_dim: 2
