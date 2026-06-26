@@ -1,4 +1,5 @@
 from diffusion.diffusionprocess import DiffusionProcess
+from models.guidance import GuidedModel
 from data.blob import BlobDataset
 import torch
 import torch.nn as nn
@@ -11,28 +12,10 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, random_split
 from diffusion.viz.viz_functions import plot_transport, plot_density_comparison
 from diffusion.utils.singularity import plot_singularity_report, ptype_of
+from diffusion.training.load_save_ckpt import load_model
 import os
 import matplotlib.pyplot as plt
 
-# Basic idea
-# How do we know how many steps are involved?
-"""
-sample from the prior and use euler mauryama or euler to to evolve the sample backwards until it is denoised (?)
-If we use the pd_ode we solve it by euler integration.
-
-the pf ode is differnt in differnt parameterizations
-
-"""
-
-
-def load_model(path, schedule, device="cuda"):
-    ckpt = torch.load(path, map_location=device)
-    network = instantiate(ckpt["model_cfg"])
-    network.load_state_dict(ckpt["model_state_dict"])
-    network.to(device).eval()
-    trained_pmtrz = instantiate(ckpt["param_cfg"], schedule=schedule, _recursive_=False)
-    trained_tp = instantiate(ckpt["time_param_cfg"], schedule=schedule)
-    return network, trained_pmtrz, trained_tp, ckpt
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="base")
@@ -79,6 +62,22 @@ def main(cfg: DictConfig):
     prior = instantiate(cfg.prior)
     x0 = prior.sample(n_samples, device=cfg.device)
 
+    # Classifier-free guidance: wrap the (conditional) model so each solver step
+    # combines a conditional and unconditional pass. Requires a CFG-trained model.
+    guidance_scale = cfg.generation.get("guidance_scale", None)
+    if guidance_scale is not None:
+        num_classes = getattr(model, "num_classes", None)
+        if num_classes is None:
+            raise ValueError("guidance_scale set but the loaded model is unconditional "
+                             "(num_classes is None). Train with train_proc=cfg first.")
+        target_class = cfg.generation.get("target_class", None)
+        if target_class is not None:
+            labels = torch.full((n_samples,), int(target_class),
+                                dtype=torch.long, device=cfg.device)
+        else:
+            labels = torch.arange(n_samples, device=cfg.device) % num_classes
+        solver.model = GuidedModel(model, labels, guidance_scale, num_classes).to(cfg.device)
+
     if cfg.viz:
         x_final, traj = solver.sample(x0=x0, return_trajectory=True)
         out_dir = os.path.join(run_dir, "figures")
@@ -104,7 +103,6 @@ def main(cfg: DictConfig):
         out_path=os.path.join(out_dir, "comparison.png"),
     )
     #temp hardcode
-    print(cfg.dataset)
     if "blob" in cfg.dataset._target_.lower():
         X = data.X.cpu().numpy()
         G = x_final.detach().cpu().numpy()

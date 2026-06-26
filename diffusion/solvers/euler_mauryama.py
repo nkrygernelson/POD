@@ -19,7 +19,7 @@ class EulerMauryamaSolver:
         gamma_func = self.schedule.gamma
         device =x0.device
         ts=self.time_param.grid(self.steps, device=device)
-        if time_grid:
+        if time_grid is not None:
             ts = time_grid
         x =x0.clone()
         traj = [x.clone()] if return_trajectory else None

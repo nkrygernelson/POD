@@ -22,7 +22,7 @@ class DDIMSolver:
 
         device=x0.device
         ts = self.time_param.grid(N, device=device, eps=eps)
-        if time_grid:#override time grid 
+        if time_grid is not None: #override time grid
             ts = time_grid
         x = x0.clone()
         traj = [x.clone()] if return_trajectory else None

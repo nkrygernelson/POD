@@ -15,11 +15,13 @@ class DiffusionProcess:
         '''
         return  self.schedule.alpha(t)*x_0 + self.schedule.sigma(t)*noise
     
-    def training_loss(self, x_0, cond= None):
+    def training_loss(self, x_0, noise=None, cond= None):
         #u is the defined time param, there is a bijection between u and t
         #if the time param is Identity, t=u
         t, u = self.t_distribution.sample(sample_shape=(x_0.shape[0],1))
-        noise = torch.randn_like(x_0)
+        #noise is sampled fresh unless curated noise is supplied (e.g. reflow pairs)
+        if noise is None:
+            noise = torch.randn_like(x_0)
         x_t = self.forward_sample(x_0, t, noise) #back to t
         #parameterization: defined in t
         target = self.parameterization.training_target(x_0, noise, t)

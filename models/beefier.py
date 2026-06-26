@@ -39,7 +39,8 @@ class SimpleModel(nn.Module):
                  hidden_dim: int = 256, n_blocks: int = 4,
                  time_emb_dim: int = 128,
                  x_fourier_features: int = 64, x_fourier_scale: float = 3.0,
-                 time_fourier_scale: float = 1.0):
+                 time_fourier_scale: float = 1.0,
+                 num_classes: int = None):
         super().__init__()
 
         # time embedding: scalar t -> Fourier -> MLP
@@ -48,6 +49,12 @@ class SimpleModel(nn.Module):
             nn.Linear(self.time_ff.out_dim, time_emb_dim), nn.SiLU(),
             nn.Linear(time_emb_dim, time_emb_dim),
         )
+
+        # optional class conditioning: index `num_classes` is the null/uncond token.
+        # num_classes=None -> unconditional model (cond is ignored, as before).
+        self.num_classes = num_classes
+        if num_classes is not None:
+            self.cond_emb = nn.Embedding(num_classes + 1, time_emb_dim)
 
         # input embedding: raw x concatenated with Fourier features of x
         self.x_ff = FourierFeatures(input_dim, x_fourier_features, scale=x_fourier_scale)
@@ -64,6 +71,14 @@ class SimpleModel(nn.Module):
         if t.dim() == 1:
             t = t.unsqueeze(-1)                       # (B,) -> (B, 1)
         t_emb = self.time_mlp(self.time_ff(t))
+        if self.num_classes is not None:
+            # None -> all-null token; otherwise an integer class index per sample.
+            if cond is None:
+                idx = torch.full((x.shape[0],), self.num_classes,
+                                 dtype=torch.long, device=x.device)
+            else:
+                idx = cond.long().view(-1)
+            t_emb = t_emb + self.cond_emb(idx)
         h = self.in_proj(torch.cat([x, self.x_ff(x)], dim=-1))
         for block in self.blocks:
             h = block(h, t_emb)

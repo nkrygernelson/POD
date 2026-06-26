@@ -16,65 +16,20 @@ from hydra.utils import instantiate, get_method
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, random_split
 from hydra.core.hydra_config import HydraConfig
-from diffusion.utils.schedulerwrapper import SchedulerWrapper
+from diffusion.training.lr_schedulerwrapper import SchedulerWrapper
 from diffusion.viz.viz_functions import viz_training, plot_prior
 from diffusion.utils.singularity import plot_singularity_report, ptype_of
+from diffusion.training.train_procs.reflow import run_reflow
+from diffusion.training.loop import fit_one
+from diffusion.training.load_save_ckpt import save_checkpoint
 import os
 import hashlib
 from pathlib import Path
-
-
-def save_checkpoint(path, epoch, network, optimizer, cfg):
-    torch.save(
-        {
-            "epoch": epoch,
-            "model_state_dict": network.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "model_cfg": OmegaConf.to_container(cfg.model, resolve=True),
-            "param_cfg": OmegaConf.to_container(cfg.parameterization, resolve=True),
-            "schedule_cfg": OmegaConf.to_container(cfg.schedule, resolve=True),
-            "time_param_cfg": OmegaConf.to_container(cfg.time_param, resolve=True),
-        },
-        path,
-    )
-
-def fit_one(network, trainproc, train_loader, val_loader, cfg, device):
-    optimizer = optim.Adam(network.parameters(), lr=cfg.trainer.lr)
-    lr_scheduler = SchedulerWrapper(instantiate(cfg.lr_scheduler, optimizer=optimizer))
-    losses_train, losses_val = [], []
-
-    for epoch in range(cfg.trainer.epochs):
-        network.train()
-        running_loss = 0.0
-        for inputs in train_loader:
-            inputs = inputs.to(device)
-            loss, _ = trainproc.training_loss(inputs)   # <-- the only seam
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item()
-
-        network.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for inputs in val_loader:
-                inputs = inputs.to(device)
-                v, _ = trainproc.training_loss(inputs)
-                val_loss += v.item()
-        val_loss /= len(val_loader)
-
-        lr_scheduler.step(val_loss)
-        lr = lr_scheduler.get_last_lr()[0]
-        print(f"Epoch [{epoch+1}/{cfg.trainer.epochs}], "
-              f"train: {running_loss/len(train_loader):.4f}, "
-              f"val: {val_loss:.4f}, lr: {lr:.2e}")
-        losses_train.append(running_loss / len(train_loader))
-        losses_val.append(val_loss)
-
-    return network, optimizer, losses_train, losses_val
-
-def run_reflow():
-    return None
+def remove_labels(dataset, device):
+    items = [dataset[i] for i in range(len(dataset))]
+    items = [it[0] if isinstance(it, (list, tuple)) else it for it in items]
+    X = torch.stack(items).to(device)
+    return X
 
 @hydra.main(version_base=None, config_path="configs", config_name="base")
 def main(cfg: DictConfig):
@@ -92,13 +47,27 @@ def main(cfg: DictConfig):
     sched = instantiate(cfg.schedule)
     tp = instantiate(cfg.time_param, schedule=sched)
     t_distribution = instantiate(cfg.t_distribution, time_param=tp, device=device)
+
+    #get_method because weight_func is not a class we need to instantiate
     weight_func = get_method(cfg.weight_func._target_)
     pmtrz = hydra.utils.instantiate(
         cfg.parameterization, schedule=sched, _recursive_=False
     )
     network = instantiate(cfg.model)
-    #TODO fix wiring this
-    trainproc = instantiate(cfg.train_proc)
+
+    epochs = cfg.trainer.epochs
+    device = cfg.device
+    run_dir = HydraConfig.get().runtime.output_dir
+    ckpt_dir = os.path.join(run_dir, "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
+
+    if cfg.train_proc.kind == "reflow":
+        #remove labels from the dataset
+        train_set = remove_labels(train_set, device)
+        val_set = remove_labels(val_set, device)
+        run_reflow(cfg, sched, tp, t_distribution, weight_func, pmtrz,
+                   train_set, val_set, device, ckpt_dir)
+        return  
 
     DP = DiffusionProcess(
         schedule=sched,
@@ -108,15 +77,8 @@ def main(cfg: DictConfig):
         t_distribution=t_distribution,
         time_param=tp,
     )
+    trainproc = instantiate(cfg.train_proc, diffusion_process=DP, _recursive_=False)
 
-    epochs = cfg.trainer.epochs
-    device = cfg.device
-    run_dir = HydraConfig.get().runtime.output_dir
-    ckpt_dir = os.path.join(run_dir, "checkpoints")
-    os.makedirs(ckpt_dir, exist_ok=True)
-    optimizer = optim.Adam(network.parameters(), lr=cfg.trainer.lr)
-    lr_scheduler_base = instantiate(cfg.lr_scheduler, optimizer=optimizer)
-    lr_scheduler = SchedulerWrapper(lr_scheduler_base)
     network, optimizer, losses_train, losses_val = fit_one(network, trainproc, train_loader, val_loader, cfg, device)
 
     if cfg.trainer.save_final:
@@ -144,11 +106,13 @@ def main(cfg: DictConfig):
             out_path=os.path.join(out_dir, "loss.png"),
         )
         num_samples = min(1000, len(val_set))
-        X = torch.stack([val_set[i] for i in range(num_samples)]).to(device)
+        items = [val_set[i] for i in range(num_samples)]
+        items = [it[0] if isinstance(it, (list, tuple)) else it for it in items]
+        X = torch.stack(items).to(device)
 
         noise = torch.randn_like(X)
         t1 = torch.ones(X.shape[0], 1, device=device)
-        mapped = DP.forward_sample(X, t1, noise)  # (num_samples, 2)
+        mapped = DP.forward_sample(X, t1, noise)
 
         prior = instantiate(cfg.prior)
         assumed = prior.sample(num_samples, device=device)

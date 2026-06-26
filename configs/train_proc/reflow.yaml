@@ -1,0 +1,4 @@
+_target_: diffusion.training.train_procs.reflow.ReflowProc
+kind: reflow
+n_steps: 3
+teacher_path: null

@@ -1,2 +1,4 @@
 trained_model_path: trained_models/train_best.pt
-num_samples: 3000
+num_samples: 50000
+guidance_scale: 0.1
+target_class: 0

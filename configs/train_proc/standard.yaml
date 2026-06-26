@@ -1,0 +1,2 @@
+_target_: diffusion.training.train_procs.standard.StandardProc
+kind: standard

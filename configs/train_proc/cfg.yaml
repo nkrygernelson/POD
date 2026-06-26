@@ -1,0 +1,4 @@
+_target_: diffusion.training.train_procs.cfg.CFGProc
+kind: cfg
+p_uncond: 0.1
+num_classes: ${num_classes}

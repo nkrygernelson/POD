@@ -4,19 +4,21 @@ defaults:
   - generation: default
   - t_distribution: uniform_u
   - time_param: logsnr
-  - model: simple
+  - model: beefier  
   - dataset: blob
   - lr_scheduler: cosine
   - parameterization: noise_pred
   - weight_func : ones
   - prior: standard_normal
-  - trainer: default 
+  - trainer: default
+  - train_proc: standard
   - _self_
-solver_steps: 100
+solver_steps: 300
 seed: 0
 device: cpu
 input_dim: 2
 output_dim: 2
+num_classes: 3
 viz: True
 run_name: ${now:%Y-%m-%d_%H-%M-%S}
 hydra:
