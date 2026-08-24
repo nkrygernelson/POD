@@ -51,7 +51,7 @@ This is only defined when the determinant is non-zero. The stability of the
 conversion can be monitored by tracking the magnitude of the determinant.
 ## DiffusionProcess
 
-This class orchestrates a number of different components to produce the training loss and use the network and parameterization instance to predicti across parameterizations. It uses the time distributions, weighting functions, x_0 samples, network and parameterization-specific training target to produce a training loss.
+This class orchestrates a number of different components to produce the training loss and use the network and parameterization instance to predict across parameterizations. It uses the time distributions, weighting functions, x_0 samples, network and parameterization-specific training target to produce a training loss.
 The methods of DiffusionProcess are:
 - `forward_sample`
 - `training_loss`
