@@ -1,5 +1,6 @@
 __pycache__/
 .claude/
+/figures/*
 .venv
 outputs/*
 !outputs/.gitkeep

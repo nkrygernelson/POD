@@ -20,10 +20,6 @@ class TimeParam:
     def t_to_u(self, t):
         raise NotImplementedError
     def u_bounds(self, eps=None):
-        '''Working-coordinate range, buffered inward by eps. Single source of truth
-        for the usable support shared by grid() and the training t-distributions.
-        Shrinks inward regardless of whether u runs low->high (logsnr) or high->low
-        (identity).'''
         if eps is None:
             eps = self.eps
         step = eps if self.u_max >= self.u_min else -eps
