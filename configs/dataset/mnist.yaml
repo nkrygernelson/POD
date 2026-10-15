@@ -1,0 +1,4 @@
+_target_: data.mnist.MNISTDataset
+root: data
+train: True
+download: True
