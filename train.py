@@ -53,7 +53,7 @@ def main(cfg: DictConfig):
     pmtrz = hydra.utils.instantiate(
         cfg.parameterization, schedule=sched, _recursive_=False
     )
-    network = instantiate(cfg.model)
+    network = instantiate(cfg.model).to(device)
 
     epochs = cfg.trainer.epochs
     device = cfg.device
@@ -129,7 +129,5 @@ def main(cfg: DictConfig):
             grid=tp.grid(int(cfg.solver.N)).cpu().numpy(),
             highlight=ptype_of(pmtrz),
         )
-
-
 if __name__ == "__main__":
     main()

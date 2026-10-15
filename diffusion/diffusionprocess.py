@@ -18,7 +18,8 @@ class DiffusionProcess:
     def training_loss(self, x_0, noise=None, cond= None):
         #u is the defined time param, there is a bijection between u and t
         #if the time param is Identity, t=u
-        t, u = self.t_distribution.sample(sample_shape=(x_0.shape[0],1))
+        #t has shape (B, 1, ..., 1) so it broadcasts against x_0: (B,1) for vectors, (B,1,1,1) for images
+        t, u = self.t_distribution.sample(sample_shape=(x_0.shape[0],) + (1,)*(x_0.dim()-1))
         #noise is sampled fresh unless curated noise is supplied (e.g. reflow pairs)
         if noise is None:
             noise = torch.randn_like(x_0)

@@ -43,6 +43,8 @@ def plot_transport(trajectory, out_path, n_paths=200, fname="transport.png"):
     ax.scatter(end[:, 0], end[:, 1], s=8, alpha=0.5, color="tab:blue", label="end (t=0, data)")
 
     ax.set_aspect("equal")
+    ax.set_xlim(-5, 5)
+    ax.set_ylim(-5, 5)
     ax.legend()
     fig.savefig(out_path)
     plt.close(fig)

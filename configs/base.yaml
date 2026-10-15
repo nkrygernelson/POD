@@ -11,9 +11,9 @@ defaults:
   - weight_func : ones
   - prior: standard_normal
   - trainer: default
-  - train_proc: standard
+  - train_proc: reflow
   - _self_
-solver_steps: 40
+solver_steps: 300
 seed: 0
 device: cpu
 input_dim: 2
