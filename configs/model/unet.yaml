@@ -1,7 +1,7 @@
 _target_: models.Unet.UNet
 in_ch: 1
-base_ch: 64
-ch_mults: [1, 2, 2]   # 28 -> 14 -> 7
+base_ch: 32
+ch_mults: [1, 2]  
 num_res_blocks: 2
 attn_levels: [2]
 emb_dim: 256

@@ -100,3 +100,27 @@ def plot_image_grid(images, out_path, nrow=10):
     """(N, C, H, W) images in [-1, 1] saved as a grid."""
     from torchvision.utils import save_image
     save_image((images.clamp(-1, 1) + 1) / 2, out_path, nrow=nrow)
+
+
+def plot_scatter_comparison(true_pts, gen_pts, out_path, s=3, alpha=0.4, dpi=150):
+    """True (left) vs generated (right) as scatter plots on a white background, shared axes."""
+    true_pts = np.asarray(true_pts, dtype=float)
+    gen_pts = np.asarray(gen_pts, dtype=float)
+    # axis limits from the true data so a few exploded samples don't zoom the view out
+    lo, hi = np.percentile(true_pts, 0.5, axis=0), np.percentile(true_pts, 99.5, axis=0)
+    pad = 0.1 * (hi - lo)
+    lo, hi = lo - pad, hi + pad
+    # count generated points outside the view so an empty panel is not misleading
+    n_out = int((~np.all((gen_pts >= lo) & (gen_pts <= hi), axis=1)).sum())
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharex=True, sharey=True)
+    for ax, pts, title, color in zip(axes, (true_pts, gen_pts),
+                                     ("true", f"generated, {n_out} outside view"),
+                                     ("tab:gray", "tab:blue")):
+        ax.scatter(pts[:, 0], pts[:, 1], s=s, alpha=alpha, color=color, linewidths=0)
+        ax.set_title(f"{title} (n={len(pts)})")
+        ax.set_aspect("equal")
+    axes[0].set_xlim(lo[0], hi[0])
+    axes[0].set_ylim(lo[1], hi[1])
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=dpi)
+    plt.close(fig)

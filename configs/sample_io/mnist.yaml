@@ -1,0 +1,2 @@
+plot: diffusion.viz.viz_mnist.plot_samples
+save: diffusion.saving.save_mnist.save_samples

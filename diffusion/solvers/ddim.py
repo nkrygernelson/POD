@@ -28,7 +28,7 @@ class DDIMSolver:
         with torch.no_grad():
             return self.model(x, t)
 
-    def sample(self, x0, eps=0, N=None, return_trajectory=False, time_grid=None):
+    def sample(self, x0, eps=None, N=None, return_trajectory=False, time_grid=None):
         """
         eps: value to give as buffer around the ends of the grid
         """

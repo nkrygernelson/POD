@@ -1,0 +1,10 @@
+# @package _global_
+# NVIDIA 2D fractal tree. Everything dataset-specific lives here.
+defaults:
+  - override /dataset: tree
+  - override /model: simple
+  - override /train_proc: reflow
+  - override /sample_io: 2d
+input_dim: 2
+output_dim: 2
+num_classes: 3

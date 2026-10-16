@@ -1,9 +1,10 @@
+# @package _global_
+# MNIST with the UNet, class-conditional (CFG) training.
 defaults:
-  - base
-  - override dataset: mnist
-  - override model: unet
-  - override train_proc: cfg
-  - _self_
+  - override /dataset: mnist
+  - override /model: unet
+  - override /train_proc: cfg
+  - override /sample_io: mnist
 num_classes: 10
 input_dim: [1, 28, 28]  # prior samples images of this shape
 trainer:

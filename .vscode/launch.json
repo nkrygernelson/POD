@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "generation (blob, guided)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/generation.py",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": [
+                "experiment=blob",
+                "generation.trained_model_path=trained_models/train_best.pt",
+                "generation.guidance_scale=1.0",
+                "generation.target_class=null",
+                "generation.num_samples=6",
+                "solver_steps=5",
+                "viz=False"
+            ],
+            "env": {"HYDRA_FULL_ERROR": "1"},
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

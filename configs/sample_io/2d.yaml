@@ -1,0 +1,2 @@
+plot: diffusion.viz.viz_2d.plot_samples
+save: diffusion.saving.save_2d.save_samples
