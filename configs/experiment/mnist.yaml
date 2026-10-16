@@ -1,16 +1,25 @@
 # @package _global_
 # MNIST with the UNet, class-conditional (CFG) training.
+# parameterization, time_param and model are set here so MNIST does not depend on base.yaml's 2D choices.
 defaults:
   - override /dataset: mnist
   - override /model: unet
   - override /train_proc: cfg
   - override /sample_io: mnist
+  - override /parameterization: v_pred   # stable at high noise, does not neglect low noise
+  - override /time_param: logsnr
 num_classes: 10
 input_dim: [1, 28, 28]  # prior samples images of this shape
+model:
+  base_ch: 64
+  ch_mults: [1, 2, 2]   # 28 -> 14 -> 7
+  attn_levels: [2]      # attention at 7x7
+  time_scale: 1.0       # matches logsnr u in [-10, 10]
 trainer:
   batch_size: 128
-  epochs: 20
+  epochs: 100           # ~37.5k steps
   lr: 0.0002
+  ema_beta: 0.9995
 generation:
   trained_model_path: trained_models/train_best.pt
   num_samples: 100      # 10x10 grid
