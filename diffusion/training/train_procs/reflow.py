@@ -51,7 +51,7 @@ def run_reflow(cfg, sched, tp, t_distribution, weight_func, pmtrz,
         teacher, _, _, _ = load_model(teacher_path, sched, device=device)
         #TODO check that the loaded parameterizations are not different than the live param?
     else:
-        teacher = instantiate(cfg.model)
+        teacher = instantiate(cfg.model).to(device)
         DP0 = DiffusionProcess(schedule=sched, parameterization=pmtrz,
                                weight_func=weight_func, network=teacher,
                                t_distribution=t_distribution, time_param=tp)
@@ -70,7 +70,7 @@ def run_reflow(cfg, sched, tp, t_distribution, weight_func, pmtrz,
         tl = DataLoader(train_pairs, batch_size=cfg.trainer.batch_size, shuffle=True)
         vl = DataLoader(val_pairs, batch_size=cfg.trainer.batch_size, shuffle=False)
 
-        student = instantiate(cfg.model)
+        student = instantiate(cfg.model).to(device)
         DP = DiffusionProcess(schedule=sched, parameterization=pmtrz,
                               weight_func=weight_func, network=student,
                               t_distribution=t_distribution, time_param=tp)

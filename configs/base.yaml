@@ -4,7 +4,7 @@ defaults:
   - generation: default
   - t_distribution: uniform_u
   - time_param: logsnr
-  - model: beefier
+  - model: simple
   - dataset: tree
   - lr_scheduler: cosine
   - parameterization: noise_pred

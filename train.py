@@ -34,6 +34,7 @@ def remove_labels(dataset, device):
 @hydra.main(version_base=None, config_path="configs", config_name="base")
 def main(cfg: DictConfig):
     device = cfg.device
+    torch.manual_seed(cfg.seed)
     dataset = instantiate(cfg.dataset)
     n_val = int(len(dataset) * (1 - cfg.trainer.train_split))
 
@@ -79,7 +80,7 @@ def main(cfg: DictConfig):
     )
     trainproc = instantiate(cfg.train_proc, diffusion_process=DP, _recursive_=False)
 
-    network, optimizer, losses_train, losses_val = fit_one(network, trainproc, train_loader, val_loader, cfg, device)
+    network, optimizer, losses_train, losses_val = fit_one(network, trainproc, train_loader, val_loader, cfg, device, ckpt_dir=ckpt_dir)
 
     if cfg.trainer.save_final:
         hc = HydraConfig.get()
@@ -110,18 +111,20 @@ def main(cfg: DictConfig):
         items = [it[0] if isinstance(it, (list, tuple)) else it for it in items]
         X = torch.stack(items).to(device)
 
-        noise = torch.randn_like(X)
-        t1 = torch.ones(X.shape[0], 1, device=device)
-        mapped = DP.forward_sample(X, t1, noise)
+        #the prior check is a 2D scatter plot, so skip it for images
+        if X.dim() == 2:
+            noise = torch.randn_like(X)
+            t1 = torch.ones(X.shape[0], 1, device=device)
+            mapped = DP.forward_sample(X, t1, noise)
 
-        prior = instantiate(cfg.prior)
-        assumed = prior.sample(num_samples, device=device)
+            prior = instantiate(cfg.prior)
+            assumed = prior.sample(num_samples, device=device)
 
-        plot_prior(
-            assumed_samples=assumed.cpu().numpy(),
-            mapped_samples=mapped.cpu().numpy(),
-            out_path=os.path.join(out_dir, "prior_check.png"),
-        )
+            plot_prior(
+                assumed_samples=assumed.cpu().numpy(),
+                mapped_samples=mapped.cpu().numpy(),
+                out_path=os.path.join(out_dir, "prior_check.png"),
+            )
 
         plot_singularity_report(
             sched,

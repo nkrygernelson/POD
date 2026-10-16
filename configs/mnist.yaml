@@ -5,8 +5,13 @@ defaults:
   - override train_proc: cfg
   - _self_
 num_classes: 10
-viz: False  # the train.py viz is 2D-only (scatter plots)
+input_dim: [1, 28, 28]  # prior samples images of this shape
 trainer:
   batch_size: 128
   epochs: 20
   lr: 0.0002
+generation:
+  trained_model_path: trained_models/train_best.pt
+  num_samples: 100      # 10x10 grid
+  guidance_scale: 1.0   # 1.0 = plain conditional
+  target_class: null    # null cycles labels 0..9

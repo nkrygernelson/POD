@@ -45,7 +45,7 @@ class DDIMSolver:
         for i in range(N):
             s = ts[i].item()
             t = ts[i + 1].item()
-            s_tens = torch.full((x.shape[0], 1), s, device=device)
+            s_tens = torch.full((x.shape[0],) + (1,)*(x.dim()-1), s, device=device)
             u_tens = self.time_param.t_to_u(s_tens)
             model_out = self.model_eval(x, u_tens)
             x_star = self.pmtrz.to_x_0(model_out, x, s_tens)

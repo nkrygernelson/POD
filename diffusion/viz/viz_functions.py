@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("TkAgg")          # non-interactive backend: fast file output, no GUI
+matplotlib.use("Agg")              # non-interactive backend: fast file output, no GUI
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
@@ -95,3 +95,8 @@ def plot_density_comparison(true_pts, gen_pts, out_path, bins=300,
     fig.tight_layout()
     fig.savefig(out_path, dpi=dpi)
     plt.close(fig)
+
+def plot_image_grid(images, out_path, nrow=10):
+    """(N, C, H, W) images in [-1, 1] saved as a grid."""
+    from torchvision.utils import save_image
+    save_image((images.clamp(-1, 1) + 1) / 2, out_path, nrow=nrow)
