@@ -3,22 +3,22 @@ defaults:
   - solver: deis
   - generation: default
   - t_distribution: uniform_u
-  - time_param: logsnr
+  - time_param: identity
   - model: simple
   - dataset: tree
+  - sample_io: 2d
   - lr_scheduler: cosine
-  - parameterization: noise_pred
+  - parameterization: clean_pred
   - weight_func : ones
   - prior: standard_normal
   - trainer: default
-  - train_proc: reflow
+  - train_proc: standard
   - _self_
+  # last, so the experiment overrides everything above (switch with experiment=mnist)
+  - experiment: tree
 solver_steps: 300
 seed: 0
 device: cpu
-input_dim: 2
-output_dim: 2
-num_classes: 3
 viz: True
 run_name: ${now:%Y-%m-%d_%H-%M-%S}
 hydra:

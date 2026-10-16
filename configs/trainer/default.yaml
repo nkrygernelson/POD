@@ -1,6 +1,10 @@
 train_split: 0.8
 batch_size : 32
 epochs: 100
+ema_beta: 0.999          # null = no EMA; 0.999 averages over ~1000 steps
 lr: 0.001
 save_final: True
-save_every: 20
+save_every: 10
+
+sample_every: 10      # generate samples into run_dir/samples every N epochs (null = off)
+pbar_mininterval: 0.1    # seconds between progress bar updates; use e.g. 60 on hpc

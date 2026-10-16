@@ -22,6 +22,7 @@ from diffusion.utils.singularity import plot_singularity_report, ptype_of
 from diffusion.training.train_procs.reflow import run_reflow
 from diffusion.training.loop import fit_one
 from diffusion.training.load_save_ckpt import save_checkpoint
+from diffusion.sampling import generate, write_samples
 import os
 import hashlib
 from pathlib import Path
@@ -80,7 +81,15 @@ def main(cfg: DictConfig):
     )
     trainproc = instantiate(cfg.train_proc, diffusion_process=DP, _recursive_=False)
 
-    network, optimizer, losses_train, losses_val = fit_one(network, trainproc, train_loader, val_loader, cfg, device, ckpt_dir=ckpt_dir)
+    #periodic samples during training (trainer.sample_every), saved with the dataset's sample_io
+    def sample_fn(model, epoch):
+        samples, labels, _ = generate(cfg, model, pmtrz, tp, sched)
+        write_samples(cfg, samples, labels, os.path.join(run_dir, "samples", f"epoch_{epoch:03d}"),
+                      f"epoch_{epoch:03d}", dataset=dataset)
+
+    network, optimizer, losses_train, losses_val, ema = fit_one(
+        network, trainproc, train_loader, val_loader, cfg, device,
+        ckpt_dir=ckpt_dir, sample_fn=sample_fn)
 
     if cfg.trainer.save_final:
         hc = HydraConfig.get()
@@ -93,7 +102,7 @@ def main(cfg: DictConfig):
         save_dir = Path.cwd() / "trained_models"
         os.makedirs(save_dir, exist_ok=True)
         save_checkpoint(
-            os.path.join(save_dir, f"{name}.pt"), epochs, network, optimizer, cfg
+            os.path.join(save_dir, f"{name}.pt"), epochs, network, optimizer, cfg, ema=ema
         )
     if cfg.viz:
         out_dir = os.path.join(run_dir, "figures")

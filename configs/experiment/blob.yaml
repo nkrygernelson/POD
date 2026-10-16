@@ -1,0 +1,12 @@
+# @package _global_
+# 2D gaussian blobs (labelled, n_clusters classes).
+defaults:
+  - override /dataset: blob
+  - override /model: simple
+  - override /train_proc: standard
+  - override /sample_io: 2d
+input_dim: 2
+output_dim: 2
+num_classes: 3
+generation:
+  num_samples: 3000

@@ -84,7 +84,7 @@ class DEISSolver:
         with torch.no_grad():
             return self.model(x, t)
 
-    def sample(self, x0, return_trajectory=False, eps=0, time_grid=None):
+    def sample(self, x0, return_trajectory=False, eps=None, time_grid=None):
         device = x0.device
         ts = self.time_param.grid(self.steps, eps=eps, device=device)
         if time_grid is not None:

@@ -1,4 +1,5 @@
-trained_model_path: trained_models/reflow_0.pt
-num_samples: 50000
-guidance_scale: 0.1
+trained_model_path: outputs/2026-10-16_23-15-54/checkpoints/epoch_20.pt
+num_samples: 10
+use_ema: True
+guidance_scale: null
 target_class: 0

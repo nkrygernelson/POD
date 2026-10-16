@@ -59,7 +59,7 @@ def run_reflow(cfg, sched, tp, t_distribution, weight_func, pmtrz,
         tl = DataLoader(train_set, batch_size=cfg.trainer.batch_size, shuffle=True)
         vl = DataLoader(val_set, batch_size=cfg.trainer.batch_size, shuffle=False)
         print("[reflow] training standard teacher")
-        teacher, opt0, _, _ = fit_one(teacher, std, tl, vl, cfg, device)
+        teacher, opt0, _, _, _ = fit_one(teacher, std, tl, vl, cfg, device)
         save_checkpoint(os.path.join(save_dir, "reflow_0.pt"),
                         cfg.trainer.epochs, teacher, opt0, cfg)
         
@@ -76,7 +76,7 @@ def run_reflow(cfg, sched, tp, t_distribution, weight_func, pmtrz,
                               t_distribution=t_distribution, time_param=tp)
         trainproc = ReflowProc(DP)
         print(f"[reflow] round {k}: training student")
-        student, opt, _, _ = fit_one(student, trainproc, tl, vl, cfg, device)
+        student, opt, _, _, _ = fit_one(student, trainproc, tl, vl, cfg, device)
         save_checkpoint(os.path.join(save_dir, f"reflow_{k}.pt"),
                         cfg.trainer.epochs, student, opt, cfg)
         teacher = student   
