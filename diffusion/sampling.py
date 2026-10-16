@@ -8,7 +8,7 @@ from hydra.utils import instantiate, get_method
 from models.guidance import GuidedModel
 
 
-def wgenerate(cfg, model, pmtrz, tp, schedule, return_trajectory=False):
+def generate(cfg, model, pmtrz, tp, schedule, return_trajectory=False):
     device = cfg.device
     n_samples = cfg.generation.num_samples
     solver = instantiate(
