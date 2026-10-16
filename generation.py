@@ -10,7 +10,7 @@ from hydra.utils import instantiate
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, random_split
-from diffusion.viz.viz_functions import plot_transport, plot_density_comparison
+from diffusion.viz.viz_functions import plot_transport, plot_density_comparison, plot_image_grid
 from diffusion.utils.singularity import plot_singularity_report, ptype_of
 from diffusion.training.load_save_ckpt import load_model
 import os
@@ -83,9 +83,10 @@ def main(cfg: DictConfig):
         x_final, traj = solver.sample(x0=x0, return_trajectory=True)
         out_dir = os.path.join(run_dir, "figures")
         os.makedirs(out_dir, exist_ok=True)
-        plot_transport(
-            traj.cpu().numpy(), out_path=os.path.join(out_dir, "transport.png")
-        )
+        if x0.dim() == 2:
+            plot_transport(
+                traj.cpu().numpy(), out_path=os.path.join(out_dir, "transport.png")
+            )
         plot_singularity_report(
             schedule,
             out_path=os.path.join(out_dir, "singularity.png"),
@@ -95,9 +96,13 @@ def main(cfg: DictConfig):
     else:
         x_final = solver.sample(x0=x0)
 
-    data = instantiate(cfg.dataset)
     out_dir = os.path.join(run_dir, "figures")
     os.makedirs(out_dir, exist_ok=True)
+    #images get a sample grid, 2D data the density comparison
+    if x_final.dim() > 2:
+        plot_image_grid(x_final.detach().cpu(), out_path=os.path.join(out_dir, "samples.png"))
+        return x_final
+    data = instantiate(cfg.dataset)
     plot_density_comparison(
         data.X.cpu().numpy(),
         x_final.detach().cpu().numpy(),

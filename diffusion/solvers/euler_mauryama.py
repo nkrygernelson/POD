@@ -29,7 +29,7 @@ class EulerMauryamaSolver:
             dt = ts[i+1]-ts[i]                             
             u = self.time_param.t_to_u(t)
             gamma = gamma_func(t)
-            t_tens=torch.full((x.shape[0],1),t.item(),device=device)
+            t_tens=torch.full((x.shape[0],) + (1,)*(x.dim()-1),t.item(),device=device)
             u_tens=torch.full((x.shape[0],1),u.item(),device=device)
             model_out=self.model_eval(x, u_tens)
             drift= self.parameterization.rev_sde(x, t_tens, model_out, gamma)
